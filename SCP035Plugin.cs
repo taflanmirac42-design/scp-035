@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Exiled.API.Features;
 using Exiled.Events.EventArgs.Player;
+using Exiled.Events.EventArgs.Scp;
 using MEC;
 using UnityEngine;
 
@@ -16,24 +17,22 @@ namespace SCP035Plugin
         private Player maskWearer = null;
         private float maskWearerHealth = 300f;
         private const float MASK_MAX_HP = 300f;
-        private const float HEALTH_DRAIN_RATE = 0.5f; // Her saniyede azalacak HP
+        private const float HEALTH_DRAIN_RATE = 0.5f;
         private bool isHealthDraining = false;
-
-        // Siyah Maske Item
-        private const ushort BLACK_MASK_ID = 35; // SCP-035 ID
-        private ItemType BLACK_MASK_TYPE = ItemType.KeycardFacilityManager; // Temeli
 
         public override void OnEnabled()
         {
             Instance = this;
             base.OnEnabled();
             Log.Info("SCP-035 Plugin etkinleştirildi!");
-            Log.Info("Siyah Maske aktif!");
+            Log.Info("Siyah Maske aktif! SCPler maskayı takanı vuramayacak!");
             
             // Event'leri register et
             Exiled.Events.Handlers.Player.PickingUpItem += OnPickingUpItem;
             Exiled.Events.Handlers.Player.Died += OnPlayerDied;
             Exiled.Events.Handlers.Player.DroppingItem += OnDroppingItem;
+            Exiled.Events.Handlers.Player.Hurting += OnPlayerHurting;
+            Exiled.Events.Handlers.Player.UsingItem += OnUsingItem;
         }
 
         public override void OnDisabled()
@@ -45,6 +44,8 @@ namespace SCP035Plugin
             Exiled.Events.Handlers.Player.PickingUpItem -= OnPickingUpItem;
             Exiled.Events.Handlers.Player.Died -= OnPlayerDied;
             Exiled.Events.Handlers.Player.DroppingItem -= OnDroppingItem;
+            Exiled.Events.Handlers.Player.Hurting -= OnPlayerHurting;
+            Exiled.Events.Handlers.Player.UsingItem -= OnUsingItem;
         }
 
         // Eşya aldığında
@@ -52,20 +53,21 @@ namespace SCP035Plugin
         {
             if (ev.Item == null || ev.Player == null) return;
 
-            // Siyah Maske kontrol et
+            // Maske kontrol et
             if (IsBlackMask(ev.Item))
             {
                 MaskWearer = ev.Player;
                 maskWearerHealth = MASK_MAX_HP;
                 
-                Log.Info($"{ev.Player.Nickname} SCP-035 (Siyah Maske) taktı!");
+                Log.Info($"{ev.Player.Nickname} maskayı taktı!");
                 
-                // Görsel efekt - Siyah görünüş
+                // Görsel efekt - Siyah maske
                 ev.Player.EnableEffect(EffectType.Ensnared, 2);
                 ev.Player.EnableEffect(EffectType.Flashed, 1);
                 
                 // Broadcast mesajı
                 ev.Player.Broadcast(5, "<color=black>███ SCP-035: MASKE SANA SAHİP ███</color>");
+                ev.Player.ShowHint("🖤 Artık normal bir insan gibi çalışabilirsin!\n🛡️ SCPler seni vuramayacak!", 5);
                 
                 // İsim değiştir
                 ev.Player.DisplayNickname = $"[SCP-035] {ev.Player.Nickname}";
@@ -76,7 +78,7 @@ namespace SCP035Plugin
                     Timing.RunCoroutine(DrainHealth());
                 }
                 
-                ev.IsAllowed = false; // Item'i al
+                ev.IsAllowed = false;
             }
         }
 
@@ -85,10 +87,11 @@ namespace SCP035Plugin
         {
             if (ev.Player == MaskWearer)
             {
-                Log.Info($"{ev.Player.Nickname} SCP-035 maskayı çıkardı!");
+                Log.Info($"{ev.Player.Nickname} maskayı çıkardı!");
                 
                 // İsim geri al
                 ev.Player.DisplayNickname = ev.Player.Nickname;
+                ev.Player.RemoveEffect(EffectType.Ensnared);
                 
                 MaskWearer = null;
                 isHealthDraining = false;
@@ -106,11 +109,50 @@ namespace SCP035Plugin
                 
                 // İsim geri al
                 ev.Player.DisplayNickname = ev.Player.Nickname;
+                ev.Player.RemoveEffect(EffectType.Ensnared);
                 
                 MaskWearer = null;
                 isHealthDraining = false;
+            }
+        }
+
+        // SCPler maskayı takanı vuramaz!
+        private void OnPlayerHurting(HurtingEventArgs ev)
+        {
+            if (ev.Player == null || ev.Attacker == null) return;
+
+            // Eğer hedef maske takanıysa ve saldırgan SCP ise
+            if (ev.Player == MaskWearer && ev.Attacker.IsScp)
+            {
+                Log.Info($"SCP ({ev.Attacker.Nickname}) maskayı takanı ({ev.Player.Nickname}) vurdu ama başarısız!");
                 
-                ev.Player.Broadcast(5, "<color=red>Maskanın kontrolü altında öldün!</color>");
+                // Hasarı engelle
+                ev.IsAllowed = false;
+                
+                // Uyarı mesajı
+                ev.Player.ShowHint("🛡️ SCP saldırısı engellendi!", 2);
+                ev.Attacker.ShowHint("❌ Bu oyuncuyu vuramazzın! (SCP-035 koruması)", 2);
+            }
+            
+            // Maske takanı normal insanlar gibi diğer oyuncuları vurabiliyor
+            if (ev.Attacker == MaskWearer && !ev.Player.IsScp)
+            {
+                // Normal hasar devam et
+                Log.Info($"Maske takanı ({ev.Attacker.Nickname}) normal oyuncuya saldırı yaptı!");
+                ev.IsAllowed = true;
+            }
+        }
+
+        // Eşya kullanma (medikit, anahtar kartı, vb)
+        private void OnUsingItem(UsingItemEventArgs ev)
+        {
+            if (ev.Player == null) return;
+
+            if (ev.Player == MaskWearer)
+            {
+                Log.Info($"Maske takanı ({ev.Player.Nickname}) eşya kullandı!");
+                // Normal insan gibi eşya kullanabilir
+                ev.IsAllowed = true;
             }
         }
 
@@ -143,7 +185,7 @@ namespace SCP035Plugin
             isHealthDraining = false;
         }
 
-        // Maskayı başka bir oyuncuya takmak (Cesede basılırsa)
+        // Maskayı başka bir oyuncuya takmak
         public void TransferMaskToPlayer(Player newWearer)
         {
             if (maskWearer != null)
@@ -166,6 +208,7 @@ namespace SCP035Plugin
             newWearer.DisplayNickname = $"[SCP-035] {newWearer.Nickname}";
             
             newWearer.Broadcast(5, "<color=black>███ SCP-035: YENİ MASKE SAHİBİ ███</color>");
+            newWearer.ShowHint("🖤 Artık normal bir insan gibi çalışabilirsin!", 5);
 
             Timing.RunCoroutine(DrainHealth());
         }
@@ -173,7 +216,6 @@ namespace SCP035Plugin
         // Siyah Maske kontrolü
         private bool IsBlackMask(Pickup item)
         {
-            // Item adı "Black Mask" ya da "SCP-035" içeriyorsa
             if (item.DisplayName.Contains("Black Mask") || 
                 item.DisplayName.Contains("SCP-035") ||
                 item.DisplayName.Contains("Maske"))
@@ -181,7 +223,6 @@ namespace SCP035Plugin
                 return true;
             }
             
-            // Ya da belirli bir ItemType ise
             if (item.Type == ItemType.KeycardFacilityManager)
             {
                 return true;
