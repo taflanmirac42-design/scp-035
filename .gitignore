@@ -1,0 +1,27 @@
+## Ignorar dosyalar
+
+# Visual Studio
+.vs/
+.vscode/
+*.sln.DotSettings.user
+*.csproj.user
+
+# Build klasörleri
+bin/
+obj/
+Debug/
+Release/
+
+# Temporary dosyalar
+*.tmp
+*.temp
+*.log
+
+# OS dosyaları
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
