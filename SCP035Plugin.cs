@@ -43,6 +43,7 @@ namespace SCP035Plugin
             Log.Info("SCP-035 Plugin etkinleştirildi!");
             Log.Info("Siyah Maske Light Containment Zone'da oluşacak!");
             Log.Info("Maskayı bulunca direkt takılacak ve çıkarılamayacak!");
+            Log.Info("Maske takanı: Tüm eşyaları kullanabilir, tüm kapıları açabilir!");
             
             // Event'leri register et
             Exiled.Events.Handlers.Server.RoundStarted += OnRoundStarted;
@@ -51,7 +52,9 @@ namespace SCP035Plugin
             Exiled.Events.Handlers.Player.DroppingItem += OnDroppingItem;
             Exiled.Events.Handlers.Player.Hurting += OnPlayerHurting;
             Exiled.Events.Handlers.Player.UsingItem += OnUsingItem;
-            Exiled.Events.Handlers.Player.InteractingLockerHandler += OnInteractingLocker;
+            Exiled.Events.Handlers.Player.InteractingDoor += OnInteractingDoor;
+            Exiled.Events.Handlers.Player.InteractingLocker += OnInteractingLocker;
+            Exiled.Events.Handlers.Player.UsingRadioItem += OnUsingRadioItem;
         }
 
         public override void OnDisabled()
@@ -66,7 +69,9 @@ namespace SCP035Plugin
             Exiled.Events.Handlers.Player.DroppingItem -= OnDroppingItem;
             Exiled.Events.Handlers.Player.Hurting -= OnPlayerHurting;
             Exiled.Events.Handlers.Player.UsingItem -= OnUsingItem;
-            Exiled.Events.Handlers.Player.InteractingLockerHandler -= OnInteractingLocker;
+            Exiled.Events.Handlers.Player.InteractingDoor -= OnInteractingDoor;
+            Exiled.Events.Handlers.Player.InteractingLocker -= OnInteractingLocker;
+            Exiled.Events.Handlers.Player.UsingRadioItem -= OnUsingRadioItem;
         }
 
         // Oyun başladığında
@@ -124,7 +129,7 @@ namespace SCP035Plugin
             
             // Broadcast mesajı
             player.Broadcast(5, "<color=black>███ SCP-035: MASKE SANA SAHİP ███\n███ KURTULUŞ YOK! ███</color>");
-            player.ShowHint("🖤 Maske seni kontrol ediyor!\n🛑 Çıkaramıyorsun!\n⚔️ Diğer insanları vurabilirsın!\n🛡️ SCPler seni vuramayacak!", 5);
+            player.ShowHint("🖤 Maske seni kontrol ediyor!\n🛑 Çıkaramıyorsun!\n⚔️ Diğer insanları vurabilirssin!\n🛡️ SCPler seni vuramayacak!\n✅ Tüm eşyaları, kapıları kullanabilirsin!", 5);
             
             // İsim değiştir
             player.DisplayNickname = $"[SCP-035] {player.Nickname}";
@@ -205,26 +210,49 @@ namespace SCP035Plugin
             }
         }
 
-        // Eşya kullanma (medikit, anahtar kartı, vb)
+        // Eşya kullanma - HEPSI SERBEST!
         private void OnUsingItem(UsingItemEventArgs ev)
         {
             if (ev.Player == null) return;
 
             if (ev.Player == MaskWearer)
             {
-                Log.Info($"Maske takanı ({ev.Player.Nickname}) eşya kullandı!");
-                // Normal insan gibi eşya kullanabilir
+                Log.Info($"Maske takanı ({ev.Player.Nickname}) eşya kullandı: {ev.Item.Type}");
+                // TÜM eşyaları kullanabilir
                 ev.IsAllowed = true;
             }
         }
 
-        // Dolapla etkileşim engelle (maskayı çıkarmaya çalışması için)
+        // Kapı açma - HEPSI SERBEST!
+        private void OnInteractingDoor(InteractingDoorEventArgs ev)
+        {
+            if (ev.Player == null) return;
+
+            if (ev.Player == MaskWearer)
+            {
+                Log.Info($"Maske takanı ({ev.Player.Nickname}) kapıyı açmaya çalıştı!");
+                // TÜM kapıları açabilir
+                ev.IsAllowed = true;
+            }
+        }
+
+        // Dolapla etkileşim - SERBEST!
         private void OnInteractingLocker(InteractingLockerEventArgs ev)
         {
             if (ev.Player == MaskWearer)
             {
-                Log.Info($"Maske takanı ({ev.Player.Nickname}) dolapla etkileşim kurmaya çalıştı!");
-                ev.IsAllowed = true; // Normalde çalışabilir ama maskayı çıkaramaz
+                Log.Info($"Maske takanı ({ev.Player.Nickname}) dolapla etkileşim kurdu!");
+                ev.IsAllowed = true;
+            }
+        }
+
+        // Radyo kullanma - SERBEST!
+        private void OnUsingRadioItem(UsingRadioItemEventArgs ev)
+        {
+            if (ev.Player == MaskWearer)
+            {
+                Log.Info($"Maske takanı ({ev.Player.Nickname}) radyoyu kullandı!");
+                ev.IsAllowed = true;
             }
         }
 
