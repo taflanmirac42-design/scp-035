@@ -1,0 +1,38 @@
+# SCP-035 Plugin Configuration
+
+# Plugin ayarları
+debug: false
+enabled: true
+
+# Siyah Maske ayarları
+mask:
+  name: "SCP-035 Siyah Maske"
+  color: "black"  # Siyah renk
+  max_hp: 300
+  health_drain_rate: 0.5  # Her saniyede azalacak HP
+  
+  # Görsel özellikler
+  visual_effects:
+    enabled: true
+    effect_type: "ensnared"  # Oyuncu kısılmış görünecek
+    flash_effect: true  # Ekran yanıp sönecek
+    effect_duration: 2
+
+# Broadcast mesajları (Ekrana yazılan mesajlar)
+broadcasts:
+  mask_pickup: "<color=black>███ SCP-035: MASKE SANA SAHİP ███</color>"
+  mask_transfer: "<color=black>███ SCP-035: YENİ MASKE SAHİBİ ███</color>"
+  mask_drop: "<color=green>Maskadan kurtuldun!</color>"
+  mask_death: "<color=red>Maskanın kontrolü altında öldün!</color>"
+
+# Maske özelliği
+mask_feature:
+  player_nickname_prefix: "[SCP-035]"  # Oyuncu adına ön ek
+  show_health_hint: true  # Sağlık göster
+  health_drain_interval: 1  # Her 1 saniyede
+
+# Görünüm
+appearance:
+  mask_type: "black_mask"
+  model: "scp035_mask"
+  texture_color: "#000000"  # Siyah renk kodu
